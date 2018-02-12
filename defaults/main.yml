@@ -57,7 +57,7 @@ consul_iface: "\
   {% else %}\
     {{ lookup('env','CONSUL_IFACE') | default(ansible_default_ipv4.interface, true) }}\
   {% endif %}"
-consul_node_name: "{{ inventory_hostname_short }}"
+consul_node_name: "consul-{{ ansible_default_ipv4['address'] }}"
 consul_node_role: "{{ lookup('env','CONSUL_NODE_ROLE') | default('client', true) }}"
 consul_recursors: "{{ lookup('env','CONSUL_RECURSORS') | default('[]', true) }}"
 consul_bootstrap_expect: "{{ lookup('env','CONSUL_BOOTSTRAP_EXPECT') | default(false, true) }}"
@@ -75,25 +75,20 @@ consul_bind_address: "\
 consul_dns_bind_address: "127.0.0.1"
 consul_http_bind_address: "0.0.0.0"
 consul_https_bind_address: "0.0.0.0"
-consul_rpc_bind_address: "0.0.0.0"
 consul_vault_address: "{{ vault_address | default('0.0.0.0', true) }}"
 
 ### Ports
 consul_ports:
-  rpc: 8400
   http: 8500
   https: -1
   dns: 8600
 
 ### Servers
-consul_group_name: "{{ lookup('env','CONSUL_GROUP_NAME') | default('consul_instances', true) }}"
+consul_group_name: "{{ lookup('env','CONSUL_GROUP_NAME') }}"
 consul_servers: "\
   {% set _consul_servers = [] %}\
-  {% for host in groups[consul_group_name] %}\
-    {% set _consul_node_role = hostvars[host]['consul_node_role'] | default('client', true) %}\
-    {% if ( _consul_node_role == 'server' or _consul_node_role == 'bootstrap') %}\
-      {% if _consul_servers.append(host) %}{% endif %}\
-    {% endif %}\
+  {% for host in groups['consul_hosts'] %}\
+  {% if _consul_servers.append(host) %}{% endif %}\
   {% endfor %}\
   {{ _consul_servers }}"
 consul_gather_server_facts: no

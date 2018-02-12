@@ -12,6 +12,13 @@
   delegate_to: 127.0.0.1
   become: false
 
+- name: Create consul host group
+  add_host:
+    group: "consul_hosts"
+    hostname: "{{ item }}"
+  with_items:
+    - "{{ play_hosts }}"
+
 - name: Include checks/asserts
   include: asserts.yml
 

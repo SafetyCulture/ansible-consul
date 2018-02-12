@@ -20,19 +20,15 @@
       {% if consul_https_bind_address | trim != '' %}
         "https": "{{ consul_https_bind_address }}",
       {% endif %}
-      {% if consul_rpc_bind_address | trim != '' %}
-        "rpc": "{{ consul_rpc_bind_address }}",
-      {% endif %}
     },
+    {% if consul_bootstrap_expect is defined %}
+  	  "bootstrap_expect": {{ consul_bootstrap_expect }},
+  	{% endif %}
     {## Ports Used ##}
     {% if consul_ports | length > 0 %}
       "ports": {{ consul_ports | to_json }},
     {% else %}
       "ports": {
-        {% if _consul_default_port_rpc | trim != '' %}
-          {% set _ = consul_ports.__setitem__('rpc', _consul_default_port_rpc) %}
-          "rpc": "{{ _consul_default_port_rpc }}",
-        {% endif %}
         {% if _consul_default_port_http | trim != '' %}
           {% set _ = consul_ports.__setitem__('http', _consul_default_port_http) %}
           "http": "{{ _consul_default_port_http }}",
@@ -72,10 +68,14 @@
         "verify_server_hostname": {{ consul_tls_verify_server_hostname | bool | to_json }},
     {% endif %}
 
+    "rejoin_after_leave": true,
+
     {## LAN Join ##}
-    "start_join": [
+    "retry_join": [
         {% for server in _consul_lan_servers %}
-            "{{ hostvars[server]['consul_bind_address'] | ipwrap }}",
+          {% if server != ansible_default_ipv4['address'] %}
+            "{{ server }}",
+          {% endif %}
         {% endfor %} ],
 
     {## Server/Client ##}
@@ -87,20 +87,6 @@
     {# Server Settings #}
 
     {% if (item.config_version == 'server') or (item.config_version == 'bootstrap') %}
-
-        {## Bootstrap settings ##}
-        "bootstrap": {{ (item.config_version == 'bootstrap') | bool | to_json }},
-        {% if consul_bootstrap_expect and not (item.config_version == 'bootstrap') %}
-            "bootstrap_expect": {{ _consul_lan_servers | length }},
-        {% endif %}
-
-        {## WAN Join ##}
-        {% if _consul_wan_servers | length > 0 %}
-            "start_join_wan": [
-                {% for server in _consul_wan_servers %}
-                    "{{ hostvars[server]['consul_bind_address'] | ipwrap }}",
-                {% endfor %} ],
-        {% endif %}
 
         {## ACLs ##}
         {% if consul_acl_enable %}
