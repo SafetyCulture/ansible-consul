@@ -1,0 +1,30 @@
+---
+
+  - block:
+  - name: Generate ACL clienttoken
+    command: "echo {{ ansible_date_time.iso8601_micro | to_uuid }}"
+    register: consul_acl_client_token_keygen
+    run_once: true
+
+  - name: Save ACL client token
+    set_fact:
+      consul_acl_client_token: "{{ consul_acl_client_token_keygen.stdout }}"
+    when:
+      - consul_acl_client_token is not defined
+      - not bootstrap_state.stat.exists | bool
+  
+  - name: Display ACL clientToken
+    debug:
+      msg: "{{ consul_acl_client_token }}"
+    run_once: True
+    when: consul_acl_client_token_display | bool
+
+  - name: Create ACL policy configuration
+    template:
+      src: configd_50acl_policy.hcl.j2
+      dest: "{{ consul_configd_path }}/client_acl_policy.hcl"
+      owner: "{{ consul_user }}"
+      group: "{{ consul_group}}"
+    notify:
+      - restart consul
+    when: consul_acl_policy | bool

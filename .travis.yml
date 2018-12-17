@@ -9,8 +9,8 @@ sudo: false
 addons:
   apt:
     packages:
-    - python-pip
-    - jq
+      - python-pip
+      - jq
 
 install:
   # Install ansible netaddr
